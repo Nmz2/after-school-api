@@ -22,6 +22,7 @@ app.use("/images", function (req, res) {
 const client = new MongoClient(process.env.MONGO_URI);
 let lessonsCollection;
 let ordersCollection;
+let teachersCollection;
 
 app.get("/", (req, res) => {
   res.send("After School API is running. Try /lessons");
@@ -143,11 +144,45 @@ app.get("/search", async (req, res) => {
     res.status(500).json({ error: "Could not search lessons" });
   }
 });
+// Challenge: list all teachers
+app.get("/teachers", async (req, res) => {
+  try {
+    const teachers = await teachersCollection.find({}).toArray();
+    res.json(teachers);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: "Could not read teachers" });
+  }
+});
 
+// Challenge: all lessons taught by one teacher
+app.get("/teachers/:id/lessons", async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Not a valid teacher id" });
+    }
+
+    const teacher = await teachersCollection.findOne({ _id: new ObjectId(id) });
+    if (!teacher) {
+      return res.status(404).json({ error: "Teacher not found" });
+    }
+
+    // Get every lesson whose _id is in the teacher's lessonIDs list
+    const lessons = await lessonsCollection
+      .find({ _id: { $in: teacher.lessonIDs } })
+      .toArray();
+    res.json(lessons);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: "Could not read the teacher's lessons" });
+  }
+});
 async function start() {
   await client.connect();
   lessonsCollection = client.db("afterschool").collection("lessons");
   ordersCollection = client.db("afterschool").collection("orders");
+  teachersCollection = client.db("afterschool").collection("teachers");
   const port = process.env.PORT || 3000;
   app.listen(port, () => console.log("Server running on port " + port));
 }
