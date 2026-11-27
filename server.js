@@ -90,6 +90,36 @@ app.put("/lessons/:id", async (req, res) => {
   }
 });
 
+// Challenge: how many spaces of one lesson have been bought
+app.get("/enrolment/:lessonid", async (req, res) => {
+  try {
+    const lessonId = req.params.lessonid;
+    if (!ObjectId.isValid(lessonId)) {
+      return res.status(400).json({ error: "Not a valid lesson id" });
+    }
+
+    // Find every order that has this lesson in its lessons array
+    const orders = await ordersCollection
+      .find({ "lessons.lessonID": lessonId })
+      .toArray();
+
+    // Add up the spaces bought for this lesson
+    let enrolment = 0;
+    orders.forEach(order => {
+      order.lessons.forEach(item => {
+        if (item.lessonID === lessonId) {
+          enrolment += item.spaces;
+        }
+      });
+    });
+
+    res.json({ lessonId: lessonId, enrolment: enrolment });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: "Could not count enrolment" });
+  }
+});
+
 async function start() {
   await client.connect();
   lessonsCollection = client.db("afterschool").collection("lessons");
