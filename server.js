@@ -23,6 +23,10 @@ const client = new MongoClient(process.env.MONGO_URI);
 let lessonsCollection;
 let ordersCollection;
 
+app.get("/", (req, res) => {
+  res.send("After School API is running. Try /lessons");
+});
+
 app.get("/lessons", async (req, res) => {
   try {
     const lessons = await lessonsCollection.find({}).toArray();
