@@ -120,6 +120,30 @@ app.get("/enrolment/:lessonid", async (req, res) => {
   }
 });
 
+// Challenge: search lessons on the server
+// Example: /search?q=lon
+app.get("/search", async (req, res) => {
+  try {
+    const term = (req.query.q || "").toLowerCase().trim();
+    const lessons = await lessonsCollection.find({}).toArray();
+
+    if (term === "") {
+      return res.json(lessons);   // empty search: return everything
+    }
+
+    const results = lessons.filter(l =>
+      l.subject.toLowerCase().includes(term) ||
+      l.location.toLowerCase().includes(term) ||
+      String(l.price).includes(term) ||
+      String(l.spaces).includes(term)
+    );
+    res.json(results);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: "Could not search lessons" });
+  }
+});
+
 async function start() {
   await client.connect();
   lessonsCollection = client.db("afterschool").collection("lessons");
